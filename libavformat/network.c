@@ -27,6 +27,22 @@
 #include "libavutil/mem.h"
 #include "libavutil/time.h"
 
+#if defined(AROS)
+#include <exec/types.h>
+#include <exec/libraries.h>
+#include <bsdsocket/socketbasetags.h>
+#include <proto/exec.h>
+#include <proto/bsdsocket.h>
+
+struct Library *SocketBase = NULL;
+#endif
+
+
+#if defined(AROS)
+    #include <aros/stdc/ctype.h>
+    extern struct Library *SocketBase;
+#endif
+
 int ff_tls_init(void)
 {
 #if CONFIG_TLS_OPENSSL_PROTOCOL
@@ -56,6 +72,22 @@ int ff_network_init(void)
 {
 #if HAVE_WINSOCK2_H
     WSADATA wsaData;
+#endif
+
+#if defined(AROS)
+        if ((SocketBase = OpenLibrary("bsdsocket.library", 0)) == NULL) {
+            fprintf(stderr, "Couldn't open bsdsocket.library. Is a TCP/IP stack running?\n");
+            OPENSSL_EXIT(10);
+        }
+
+        atexit(aros_bsdsocket_close);
+
+        if(SocketBaseTags(SBTM_SETVAL(SBTC_ERRNOPTR(sizeof(errno))), (IPTR) &errno,
+                          SBTM_SETVAL(SBTC_LOGTAGPTR),               (IPTR) "openssl",
+                          TAG_DONE)) {
+            fprintf(stderr, "Error initialising bsdsocket.library\n");
+            OPENSSL_EXIT(10);
+        }
 #endif
 
     if (!ff_network_inited_globally)

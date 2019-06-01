@@ -4467,6 +4467,8 @@ case $target_os in
         SLIB_INSTALL_LINKS=
         SHFLAGS='-shared -Wl,-soname,$(SLIBNAME)'
         ;;
+    aros)
+        ;;
     haiku)
         prefix_default="/boot/common"
         network_extralibs="-lnetwork"

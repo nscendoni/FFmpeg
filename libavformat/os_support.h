@@ -105,6 +105,12 @@ typedef int socklen_t;
 #define closesocket close
 #endif
 
+#if defined(__AROS__)
+#undef closesocket
+#define closesocket CloseSocket
+#include <proto/socket.h>
+#endif
+
 #if !HAVE_POLL_H
 typedef unsigned long nfds_t;
 
