@@ -50,7 +50,7 @@ static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 #if HAVE_VALGRIND_VALGRIND_H
 #include <valgrind/valgrind.h>
 /* this is the log level at which valgrind will output a full backtrace */
-#define BACKTRACE_LOGLEVEL AV_LOG_ERROR
+#define BACKTRACE_LOGLEVEL AV_LOG_TRACE
 #endif
 
 static int av_log_level = AV_LOG_INFO;

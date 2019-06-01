@@ -422,6 +422,8 @@ int avformat_queue_attached_pictures(AVFormatContext *s)
 int avformat_open_input(AVFormatContext **ps, const char *filename,
                         AVInputFormat *fmt, AVDictionary **options)
 {
+        asm("int3");
+
     AVFormatContext *s = *ps;
     int ret = 0;
     AVDictionary *tmp = NULL;
