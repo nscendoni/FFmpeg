@@ -65,8 +65,7 @@ static int flac_read_header(AVFormatContext *s)
 
     /* process metadata blocks */
     while (!avio_feof(s->pb) && !metadata_last) {
-        if (avio_read(s->pb, header, 4) != 4)
-            return AVERROR(AVERROR_INVALIDDATA);
+        avio_read(s->pb, header, 4);
         flac_parse_block_header(header, &metadata_last, &metadata_type,
                                    &metadata_size);
         switch (metadata_type) {
@@ -260,10 +259,8 @@ static av_unused int64_t flac_read_timestamp(AVFormatContext *s, int stream_inde
         if (ret < 0){
             if (ret == AVERROR(EAGAIN))
                 continue;
-            else {
-                av_packet_unref(&pkt);
-                av_assert1(!pkt.size);
-            }
+            else
+                break;
         }
         av_init_packet(&out_pkt);
         av_parser_parse2(parser, st->codec,
@@ -280,8 +277,7 @@ static av_unused int64_t flac_read_timestamp(AVFormatContext *s, int stream_inde
                 pts = parser->pts;
                 break;
             }
-        } else if (ret < 0)
-            break;
+        }
     }
     av_parser_close(parser);
     return pts;

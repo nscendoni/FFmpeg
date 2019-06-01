@@ -33,7 +33,6 @@ static int dcstr_probe(AVProbeData *p)
 static int dcstr_read_header(AVFormatContext *s)
 {
     unsigned codec, align;
-    int mult;
     AVStream *st;
 
     st = avformat_new_stream(s, NULL);
@@ -47,12 +46,7 @@ static int dcstr_read_header(AVFormatContext *s)
     align                  = avio_rl32(s->pb);
     avio_skip(s->pb, 4);
     st->duration           = avio_rl32(s->pb);
-    mult                   = avio_rl32(s->pb);
-    if (st->codec->channels <= 0 || mult <= 0 || mult > INT_MAX / st->codec->channels) {
-        av_log(s, AV_LOG_ERROR, "invalid number of channels %d x %d\n", st->codec->channels, mult);
-        return AVERROR_INVALIDDATA;
-    }
-    st->codec->channels *= mult;
+    st->codec->channels   *= avio_rl32(s->pb);
     if (!align || align > INT_MAX / st->codec->channels)
         return AVERROR_INVALIDDATA;
     st->codec->block_align = align * st->codec->channels;

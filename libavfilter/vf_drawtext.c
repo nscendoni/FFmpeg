@@ -1222,9 +1222,7 @@ static int draw_text(AVFilterContext *ctx, AVFrame *frame,
         dummy.code = code;
         glyph = av_tree_find(s->glyphs, &dummy, glyph_cmp, NULL);
         if (!glyph) {
-            ret = load_glyph(ctx, &glyph, code);
-            if (ret < 0)
-                return ret;
+            load_glyph(ctx, &glyph, code);
         }
 
         y_min = FFMIN(glyph->bbox.yMin, y_min);

@@ -2014,7 +2014,12 @@ static int decode_audio(InputStream *ist, AVPacket *pkt, int *got_output)
             }
     }
 
-    if (decoded_frame->pkt_pts != AV_NOPTS_VALUE) {
+    /* if the decoder provides a pts, use it instead of the last packet pts.
+       the decoder could be delaying output by a packet or more. */
+    if (decoded_frame->pts != AV_NOPTS_VALUE) {
+        ist->dts = ist->next_dts = ist->pts = ist->next_pts = av_rescale_q(decoded_frame->pts, avctx->time_base, AV_TIME_BASE_Q);
+        decoded_frame_tb   = avctx->time_base;
+    } else if (decoded_frame->pkt_pts != AV_NOPTS_VALUE) {
         decoded_frame->pts = decoded_frame->pkt_pts;
         decoded_frame_tb   = ist->st->time_base;
     } else if (pkt->pts != AV_NOPTS_VALUE) {
@@ -2382,12 +2387,8 @@ static int process_input_packet(InputStream *ist, const AVPacket *pkt, int no_eo
         ist->dts = ist->next_dts;
         switch (ist->dec_ctx->codec_type) {
         case AVMEDIA_TYPE_AUDIO:
-            if (ist->dec_ctx->sample_rate) {
-                ist->next_dts += ((int64_t)AV_TIME_BASE * ist->dec_ctx->frame_size) /
-                                  ist->dec_ctx->sample_rate;
-            } else {
-                ist->next_dts += av_rescale_q(pkt->duration, ist->st->time_base, AV_TIME_BASE_Q);
-            }
+            ist->next_dts += ((int64_t)AV_TIME_BASE * ist->dec_ctx->frame_size) /
+                             ist->dec_ctx->sample_rate;
             break;
         case AVMEDIA_TYPE_VIDEO:
             if (ist->framerate.num) {
@@ -2892,8 +2893,7 @@ static int transcode_init(void)
              * overhead
              */
             if(!strcmp(oc->oformat->name, "avi")) {
-                if ( copy_tb<0 && ist->st->r_frame_rate.num
-                               && av_q2d(ist->st->r_frame_rate) >= av_q2d(ist->st->avg_frame_rate)
+                if ( copy_tb<0 && av_q2d(ist->st->r_frame_rate) >= av_q2d(ist->st->avg_frame_rate)
                                && 0.5/av_q2d(ist->st->r_frame_rate) > av_q2d(ist->st->time_base)
                                && 0.5/av_q2d(ist->st->r_frame_rate) > av_q2d(dec_ctx->time_base)
                                && av_q2d(ist->st->time_base) < 1.0/500 && av_q2d(dec_ctx->time_base) < 1.0/500
@@ -4266,8 +4266,6 @@ int main(int argc, char **argv)
 {
     int ret;
     int64_t ti;
-
-    init_dynload();
 
     register_exit(ffmpeg_cleanup);
 

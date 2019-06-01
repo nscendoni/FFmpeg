@@ -240,7 +240,7 @@ static av_cold int movie_common_init(AVFilterContext *ctx)
         timestamp = movie->seek_point;
         // add the stream start time, should it exist
         if (movie->format_ctx->start_time != AV_NOPTS_VALUE) {
-            if (timestamp > 0 && movie->format_ctx->start_time > INT64_MAX - timestamp) {
+            if (timestamp > INT64_MAX - movie->format_ctx->start_time) {
                 av_log(ctx, AV_LOG_ERROR,
                        "%s: seek value overflow with start_time:%"PRId64" seek_point:%"PRId64"\n",
                        movie->file_name, movie->format_ctx->start_time, movie->seek_point);

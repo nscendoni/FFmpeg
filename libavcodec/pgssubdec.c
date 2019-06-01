@@ -300,11 +300,8 @@ static int parse_object_segment(AVCodecContext *avctx,
 
     av_fast_padded_malloc(&object->rle, &object->rle_buffer_size, rle_bitmap_len);
 
-    if (!object->rle) {
-        object->rle_data_len = 0;
-        object->rle_remaining_len = 0;
+    if (!object->rle)
         return AVERROR(ENOMEM);
-    }
 
     memcpy(object->rle, buf, buf_size);
     object->rle_data_len = buf_size;
@@ -357,14 +354,8 @@ static int parse_palette_segment(AVCodecContext *avctx,
         cb        = bytestream_get_byte(&buf);
         alpha     = bytestream_get_byte(&buf);
 
-        /* Default to BT.709 colorimetry. In case of <= 576 height use BT.601 */
-        if (avctx->height <= 0 || avctx->height > 576) {
-            YUV_TO_RGB1_CCIR_BT709(cb, cr);
-        } else {
-            YUV_TO_RGB1_CCIR(cb, cr);
-        }
-
-        YUV_TO_RGB2_CCIR(r, g, b, y);
+        YUV_TO_RGB1(cb, cr);
+        YUV_TO_RGB2(r, g, b, y);
 
         ff_dlog(avctx, "Color %d := (%d,%d,%d,%d)\n", color_id, r, g, b, alpha);
 
@@ -561,13 +552,12 @@ static int display_end_segment(AVCodecContext *avctx, void *data,
 
         sub->rects[i]->x    = ctx->presentation.objects[i].x;
         sub->rects[i]->y    = ctx->presentation.objects[i].y;
+        sub->rects[i]->w    = object->w;
+        sub->rects[i]->h    = object->h;
+
+        sub->rects[i]->linesize[0] = object->w;
 
         if (object->rle) {
-            sub->rects[i]->w    = object->w;
-            sub->rects[i]->h    = object->h;
-
-            sub->rects[i]->linesize[0] = object->w;
-
             if (object->rle_remaining_len) {
                 av_log(avctx, AV_LOG_ERROR, "RLE data length %u is %u bytes shorter than expected\n",
                        object->rle_data_len, object->rle_remaining_len);

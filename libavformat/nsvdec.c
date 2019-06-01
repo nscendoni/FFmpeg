@@ -177,7 +177,6 @@ typedef struct NSVContext {
     AVRational framerate;
     uint32_t *nsvs_timestamps;
     //DVDemuxContext* dv_demux;
-    int nsvf;
 } NSVContext;
 
 static const AVCodecTag nsv_codec_video_tags[] = {
@@ -281,12 +280,6 @@ static int nsv_parse_NSVf_header(AVFormatContext *s)
 
     nsv->state = NSV_UNSYNC; /* in case we fail */
 
-    if (nsv->nsvf) {
-        av_log(s, AV_LOG_TRACE, "Multiple NSVf\n");
-        return 0;
-    }
-    nsv->nsvf = 1;
-
     size = avio_rl32(pb);
     if (size < 28)
         return -1;
@@ -357,11 +350,8 @@ static int nsv_parse_NSVf_header(AVFormatContext *s)
         if (!nsv->nsvs_file_offset)
             return AVERROR(ENOMEM);
 
-        for(i=0;i<table_entries_used;i++) {
-            if (avio_feof(pb))
-                return AVERROR_INVALIDDATA;
+        for(i=0;i<table_entries_used;i++)
             nsv->nsvs_file_offset[i] = avio_rl32(pb) + size;
-        }
 
         if(table_entries > table_entries_used &&
            avio_rl32(pb) == MKTAG('T','O','C','2')) {

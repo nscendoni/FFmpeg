@@ -373,10 +373,6 @@ void avcodec_align_dimensions2(AVCodecContext *s, int *width, int *height,
             w_align = 4;
             h_align = 4;
         }
-        if (s->codec_id == AV_CODEC_ID_INTERPLAY_VIDEO) {
-            w_align = 8;
-            h_align = 8;
-        }
         break;
     case AV_PIX_FMT_PAL8:
     case AV_PIX_FMT_BGR8:
@@ -386,8 +382,7 @@ void avcodec_align_dimensions2(AVCodecContext *s, int *width, int *height,
             w_align = 4;
             h_align = 4;
         }
-        if (s->codec_id == AV_CODEC_ID_JV ||
-            s->codec_id == AV_CODEC_ID_INTERPLAY_VIDEO) {
+        if (s->codec_id == AV_CODEC_ID_JV) {
             w_align = 8;
             h_align = 8;
         }
@@ -415,10 +410,7 @@ void avcodec_align_dimensions2(AVCodecContext *s, int *width, int *height,
 
     *width  = FFALIGN(*width, w_align);
     *height = FFALIGN(*height, h_align);
-    if (s->codec_id == AV_CODEC_ID_H264 || s->lowres ||
-        s->codec_id == AV_CODEC_ID_VP5  || s->codec_id == AV_CODEC_ID_VP6 ||
-        s->codec_id == AV_CODEC_ID_VP6F || s->codec_id == AV_CODEC_ID_VP6A
-    ) {
+    if (s->codec_id == AV_CODEC_ID_H264 || s->lowres) {
         // some of the optimized chroma MC reads one line too much
         // which is also done in mpeg decoders with lowres > 0
         *height += 2;
@@ -965,7 +957,6 @@ int avcodec_default_execute(AVCodecContext *c, int (*func)(AVCodecContext *c2, v
         if (ret)
             ret[i] = r;
     }
-    emms_c();
     return 0;
 }
 
@@ -978,7 +969,6 @@ int avcodec_default_execute2(AVCodecContext *c, int (*func)(AVCodecContext *c2, 
         if (ret)
             ret[i] = r;
     }
-    emms_c();
     return 0;
 }
 
@@ -1136,10 +1126,6 @@ int av_codec_get_max_lowres(const AVCodec *codec)
     return codec->max_lowres;
 }
 
-int avpriv_codec_get_cap_skip_frame_fill_param(const AVCodec *codec){
-    return !!(codec->caps_internal & FF_CODEC_CAP_SKIP_FRAME_FILL_PARAM);
-}
-
 static void get_subtitle_defaults(AVSubtitle *sub)
 {
     memset(sub, 0, sizeof(*sub));
@@ -1212,7 +1198,7 @@ int attribute_align_arg avcodec_open2(AVCodecContext *avctx, const AVCodec *code
     if (ret < 0)
         return ret;
 
-    avctx->internal = av_mallocz(sizeof(*avctx->internal));
+    avctx->internal = av_mallocz(sizeof(AVCodecInternal));
     if (!avctx->internal) {
         ret = AVERROR(ENOMEM);
         goto end;
@@ -1490,7 +1476,7 @@ FF_ENABLE_DEPRECATION_WARNINGS
         }
 
         if (!avctx->rc_initial_buffer_occupancy)
-            avctx->rc_initial_buffer_occupancy = avctx->rc_buffer_size * 3LL / 4;
+            avctx->rc_initial_buffer_occupancy = avctx->rc_buffer_size * 3 / 4;
 
         if (avctx->ticks_per_frame && avctx->time_base.num &&
             avctx->ticks_per_frame > INT_MAX / avctx->time_base.num) {
@@ -2268,7 +2254,7 @@ int attribute_align_arg avcodec_decode_audio4(AVCodecContext *avctx,
             skip_reason = AV_RL8(side + 8);
             discard_reason = AV_RL8(side + 9);
         }
-        if (avctx->internal->skip_samples > 0 && *got_frame_ptr &&
+        if (avctx->internal->skip_samples && *got_frame_ptr &&
             !(avctx->flags2 & AV_CODEC_FLAG2_SKIP_MANUAL)) {
             if(frame->nb_samples <= avctx->internal->skip_samples){
                 *got_frame_ptr = 0;
@@ -2537,7 +2523,7 @@ void avsubtitle_free(AVSubtitle *sub)
 
     av_freep(&sub->rects);
 
-    memset(sub, 0, sizeof(*sub));
+    memset(sub, 0, sizeof(AVSubtitle));
 }
 
 av_cold int avcodec_close(AVCodecContext *avctx)

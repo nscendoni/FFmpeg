@@ -184,7 +184,6 @@ static int copy_packet_data(AVPacket *pkt, const AVPacket *src, int dup)
 {
     pkt->data      = NULL;
     pkt->side_data = NULL;
-    pkt->side_data_elems = 0;
     if (pkt->buf) {
         AVBufferRef *ref = av_buffer_ref(src->buf);
         if (!ref)
@@ -194,11 +193,9 @@ static int copy_packet_data(AVPacket *pkt, const AVPacket *src, int dup)
     } else {
         DUP_DATA(pkt->data, src->data, pkt->size, 1, ALLOC_BUF);
     }
-    if (src->side_data_elems && dup) {
+    if (pkt->side_data_elems && dup)
         pkt->side_data = src->side_data;
-        pkt->side_data_elems = src->side_data_elems;
-    }
-    if (src->side_data_elems && !dup) {
+    if (pkt->side_data_elems && !dup) {
         return av_copy_packet_side_data(pkt, src);
     }
     return 0;
@@ -280,17 +277,16 @@ FF_ENABLE_DEPRECATION_WARNINGS
 int av_packet_add_side_data(AVPacket *pkt, enum AVPacketSideDataType type,
                             uint8_t *data, size_t size)
 {
-    AVPacketSideData *tmp;
     int elems = pkt->side_data_elems;
 
-    if ((unsigned)elems + 1 > AV_PKT_DATA_NB)
+    if ((unsigned)elems + 1 > INT_MAX / sizeof(*pkt->side_data))
         return AVERROR(ERANGE);
 
-    tmp = av_realloc(pkt->side_data, (elems + 1) * sizeof(*tmp));
-    if (!tmp)
+    pkt->side_data = av_realloc(pkt->side_data,
+                                (elems + 1) * sizeof(*pkt->side_data));
+    if (!pkt->side_data)
         return AVERROR(ENOMEM);
 
-    pkt->side_data = tmp;
     pkt->side_data[elems].data = data;
     pkt->side_data[elems].size = size;
     pkt->side_data[elems].type = type;
@@ -333,8 +329,6 @@ uint8_t *av_packet_get_side_data(AVPacket *pkt, enum AVPacketSideDataType type,
             return pkt->side_data[i].data;
         }
     }
-    if (size)
-        *size = 0;
     return NULL;
 }
 
@@ -407,17 +401,12 @@ int av_packet_split_side_data(AVPacket *pkt){
         p = pkt->data + pkt->size - 8 - 5;
         for (i=1; ; i++){
             size = AV_RB32(p);
-            if (size>INT_MAX - 5 || p - pkt->data < size)
+            if (size>INT_MAX || p - pkt->data < size)
                 return 0;
             if (p[4]&128)
                 break;
-            if (p - pkt->data < size + 5)
-                return 0;
             p-= size+5;
         }
-
-        if (i > AV_PKT_DATA_NB)
-            return AVERROR(ERANGE);
 
         pkt->side_data = av_malloc_array(i, sizeof(*pkt->side_data));
         if (!pkt->side_data)
@@ -426,7 +415,7 @@ int av_packet_split_side_data(AVPacket *pkt){
         p= pkt->data + pkt->size - 8 - 5;
         for (i=0; ; i++){
             size= AV_RB32(p);
-            av_assert0(size<=INT_MAX - 5 && p - pkt->data >= size);
+            av_assert0(size<=INT_MAX && p - pkt->data >= size);
             pkt->side_data[i].data = av_mallocz(size + AV_INPUT_BUFFER_PADDING_SIZE);
             pkt->side_data[i].size = size;
             pkt->side_data[i].type = p[4]&127;

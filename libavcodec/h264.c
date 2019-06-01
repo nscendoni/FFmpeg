@@ -1591,9 +1591,7 @@ again:
 #endif
                     } else
                         context_count++;
-                } else
-                    sl->ref_count[0] = sl->ref_count[1] = 0;
-            break;
+                }
                 break;
             case NAL_DPA:
             case NAL_DPB:
@@ -1658,8 +1656,8 @@ again:
                     av_log(h->avctx, AV_LOG_ERROR, "decode_slice_header error\n");
                 sl->ref_count[0] = sl->ref_count[1] = sl->list_count = 0;
             } else if (err == SLICE_SINGLETHREAD) {
-                if (context_count > 0) {
-                    ret = ff_h264_execute_decode_slices(h, context_count);
+                if (context_count > 1) {
+                    ret = ff_h264_execute_decode_slices(h, context_count - 1);
                     if (ret < 0 && (h->avctx->err_recognition & AV_EF_EXPLODE))
                         goto end;
                     context_count = 0;
@@ -1783,7 +1781,7 @@ static int is_extra(const uint8_t *buf, int buf_size)
     const uint8_t *p= buf+6;
     while(cnt--){
         int nalsize= AV_RB16(p) + 2;
-        if(nalsize > buf_size - (p-buf) || (p[2] & 0x9F) != 7)
+        if(nalsize > buf_size - (p-buf) || p[2]!=0x67)
             return 0;
         p += nalsize;
     }
@@ -1792,7 +1790,7 @@ static int is_extra(const uint8_t *buf, int buf_size)
         return 0;
     while(cnt--){
         int nalsize= AV_RB16(p) + 2;
-        if(nalsize > buf_size - (p-buf) || (p[2] & 0x9F) != 8)
+        if(nalsize > buf_size - (p-buf) || p[2]!=0x68)
             return 0;
         p += nalsize;
     }

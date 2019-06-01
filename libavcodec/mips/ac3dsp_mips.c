@@ -201,7 +201,6 @@ static void ac3_update_bap_counts_mips(uint16_t mant_cnt[16], uint8_t *bap,
 #endif
 
 #if HAVE_MIPSFPU
-#if !HAVE_MIPS32R6 && !HAVE_MIPS64R6
 static void float_to_fixed24_mips(int32_t *dst, const float *src, unsigned int len)
 {
     const float scale = 1 << 24;
@@ -396,8 +395,7 @@ static void ac3_downmix_mips(float **samples, float (*matrix)[2],
         :"memory"
     );
 }
-#endif /* !HAVE_MIPS32R6 && !HAVE_MIPS64R6 */
-#endif /* HAVE_MIPSFPU */
+#endif
 #endif /* HAVE_INLINE_ASM */
 
 void ff_ac3dsp_init_mips(AC3DSPContext *c, int bit_exact) {
@@ -407,11 +405,9 @@ void ff_ac3dsp_init_mips(AC3DSPContext *c, int bit_exact) {
     c->update_bap_counts  = ac3_update_bap_counts_mips;
 #endif
 #if HAVE_MIPSFPU
-#if !HAVE_MIPS32R6 && !HAVE_MIPS64R6
     c->float_to_fixed24 = float_to_fixed24_mips;
     c->downmix          = ac3_downmix_mips;
 #endif
 #endif
 
-#endif
 }

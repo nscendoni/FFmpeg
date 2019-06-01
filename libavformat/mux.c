@@ -400,8 +400,7 @@ FF_ENABLE_DEPRECATION_WARNINGS
     }
 
     if (s->oformat->init && (ret = s->oformat->init(s)) < 0) {
-        if (s->oformat->deinit)
-            s->oformat->deinit(s);
+        s->oformat->deinit(s);
         goto fail;
     }
 
@@ -650,7 +649,7 @@ static int write_packet(AVFormatContext *s, AVPacket *pkt)
                 av_log(s, AV_LOG_WARNING, "failed to avoid negative "
                     "pts %s in stream %d.\n"
                     "Try -avoid_negative_ts 1 as a possible workaround.\n",
-                    av_ts2str(pkt->pts),
+                    av_ts2str(pkt->dts),
                     pkt->stream_index
                 );
             }

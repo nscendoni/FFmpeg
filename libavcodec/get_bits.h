@@ -32,7 +32,6 @@
 #include "libavutil/intreadwrite.h"
 #include "libavutil/log.h"
 #include "libavutil/avassert.h"
-#include "avcodec.h"
 #include "mathops.h"
 
 /*
@@ -383,10 +382,6 @@ static inline uint64_t get_bits64(GetBitContext *s, int n)
  */
 static inline int get_sbits_long(GetBitContext *s, int n)
 {
-    // sign_extend(x, 0) is undefined
-    if (!n)
-        return 0;
-
     return sign_extend(get_bits_long(s, n), n);
 }
 
@@ -426,7 +421,7 @@ static inline int init_get_bits(GetBitContext *s, const uint8_t *buffer,
     int buffer_size;
     int ret = 0;
 
-    if (bit_size >= INT_MAX - FFMAX(7, AV_INPUT_BUFFER_PADDING_SIZE*8) || bit_size < 0 || !buffer) {
+    if (bit_size >= INT_MAX - 7 || bit_size < 0 || !buffer) {
         bit_size    = 0;
         buffer      = NULL;
         ret         = AVERROR_INVALIDDATA;
@@ -575,7 +570,6 @@ void ff_free_vlc(VLC *vlc);
  * @param max_depth is the number of times bits bits must be read to completely
  *                  read the longest vlc code
  *                  = (max_vlc_length + bits - 1) / bits
- * @returns the code parsed or -1 if no vlc matches
  */
 static av_always_inline int get_vlc2(GetBitContext *s, VLC_TYPE (*table)[2],
                                      int bits, int max_depth)

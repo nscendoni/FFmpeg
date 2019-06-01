@@ -145,7 +145,7 @@ static int decode_nal_sei_display_orientation(HEVCContext *s)
     return 0;
 }
 
-static int decode_pic_timing(HEVCContext *s, int size)
+static int decode_pic_timing(HEVCContext *s)
 {
     GetBitContext *gb = &s->HEVClc->gb;
     HEVCSPS *sps;
@@ -166,12 +166,8 @@ static int decode_pic_timing(HEVCContext *s, int size)
         }
         get_bits(gb, 2);                   // source_scan_type
         get_bits(gb, 1);                   // duplicate_flag
-        skip_bits1(gb);
-        size--;
     }
-    skip_bits_long(gb, 8 * size);
-
-    return 0;
+    return 1;
 }
 
 static int decode_registered_user_data_closed_caption(HEVCContext *s, int size)
@@ -301,8 +297,9 @@ static int decode_nal_sei_prefix(HEVCContext *s, int type, int size)
         return decode_nal_sei_display_orientation(s);
     case SEI_TYPE_PICTURE_TIMING:
         {
-            int ret = decode_pic_timing(s, size);
+            int ret = decode_pic_timing(s);
             av_log(s->avctx, AV_LOG_DEBUG, "Skipped PREFIX SEI %d\n", type);
+            skip_bits(gb, 8 * size);
             return ret;
         }
     case SEI_TYPE_MASTERING_DISPLAY_INFO:
@@ -344,15 +341,11 @@ static int decode_nal_sei_message(HEVCContext *s)
     av_log(s->avctx, AV_LOG_DEBUG, "Decoding SEI\n");
 
     while (byte == 0xFF) {
-        if (get_bits_left(gb) < 16 || payload_type > INT_MAX - 255)
-            return AVERROR_INVALIDDATA;
         byte          = get_bits(gb, 8);
         payload_type += byte;
     }
     byte = 0xFF;
     while (byte == 0xFF) {
-        if (get_bits_left(gb) < 8 + 8LL*payload_size)
-            return AVERROR_INVALIDDATA;
         byte          = get_bits(gb, 8);
         payload_size += byte;
     }
@@ -379,10 +372,4 @@ int ff_hevc_decode_nal_sei(HEVCContext *s)
             return(AVERROR(ENOMEM));
     } while (more_rbsp_data(&s->HEVClc->gb));
     return 1;
-}
-
-void ff_hevc_reset_sei(HEVCContext *s)
-{
-    s->a53_caption_size = 0;
-    av_freep(&s->a53_caption);
 }

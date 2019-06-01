@@ -54,6 +54,7 @@ void av_register_all(void)
 
     if (initialized)
         return;
+    initialized = 1;
 
     avcodec_register_all();
 
@@ -417,6 +418,4 @@ void av_register_all(void)
     REGISTER_PROTOCOL(LIBRTMPTE,        librtmpte);
     REGISTER_PROTOCOL(LIBSSH,           libssh);
     REGISTER_PROTOCOL(LIBSMBCLIENT,     libsmbclient);
-
-    initialized = 1;
 }

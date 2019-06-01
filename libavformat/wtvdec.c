@@ -1033,7 +1033,7 @@ static int read_header(AVFormatContext *s)
                     while (1) {
                         uint64_t frame_nb = avio_rl64(pb);
                         uint64_t position = avio_rl64(pb);
-                        while (e <= e_end && frame_nb > e->size) {
+                        while (frame_nb > e->size && e <= e_end) {
                             e->pos = last_position;
                             e++;
                         }

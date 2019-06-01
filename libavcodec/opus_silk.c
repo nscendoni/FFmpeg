@@ -851,7 +851,8 @@ static inline void silk_stabilize_lsf(int16_t nlsf[16], int order, const uint16_
     if (nlsf[0] < min_delta[0])
         nlsf[0] = min_delta[0];
     for (i = 1; i < order; i++)
-        nlsf[i] = FFMAX(nlsf[i], FFMIN(nlsf[i - 1] + min_delta[i], 32767));
+        if (nlsf[i] < nlsf[i - 1] + min_delta[i])
+            nlsf[i] = nlsf[i - 1] + min_delta[i];
 
     /* push backwards to increase distance */
     if (nlsf[order-1] > 32768 - min_delta[order])
@@ -955,10 +956,8 @@ static void silk_lsf2lpc(const int16_t nlsf[16], float lpcf[16], int order)
 
     /* reconstruct A(z) */
     for (k = 0; k < order>>1; k++) {
-        int32_t p_tmp = p[k + 1] + p[k];
-        int32_t q_tmp = q[k + 1] - q[k];
-        lpc32[k]         = -q_tmp - p_tmp;
-        lpc32[order-k-1] =  q_tmp - p_tmp;
+        lpc32[k]         = -p[k + 1] - p[k] - q[k + 1] + q[k];
+        lpc32[order-k-1] = -p[k + 1] - p[k] + q[k + 1] - q[k];
     }
 
     /* limit the range of the LPC coefficients to each fit within an int16_t */
